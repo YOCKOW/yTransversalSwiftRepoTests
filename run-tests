@@ -1,0 +1,184 @@
+#!/usr/bin/env zsh
+
+################################################################################
+# run-tests (yTransversalSwiftRepoTests)
+#   - Run tests of YOCKOW's Swift Repositories.
+#
+#   PUBLIC DOMAIN
+################################################################################
+
+set -eu
+
+local -A repositories=(
+  [CSV.swift]="https://github.com/yaslab/CSV.swift.git" # Dependency
+
+  [SwiftBonaFideCharacterSet]="https://GitHub.com/YOCKOW/SwiftBonaFideCharacterSet.git"
+  [SwiftBootstring]="https://GitHub.com/YOCKOW/SwiftBootstring.git"
+  [SwiftCGIResponder]="https://GitHub.com/YOCKOW/SwiftCGIResponder.git"
+  [SwiftCodableDictionary]="https://GitHub.com/YOCKOW/SwiftCodableDictionary.git"
+  [SwiftJapaneseNationalHolidays]="https://GitHub.com/YOCKOW/SwiftJapaneseNationalHolidays.git"
+  [SwiftMailMessage]="https://GitHub.com/YOCKOW/SwiftMailMessage.git"
+  [SwiftNetworkGear]="https://GitHub.com/YOCKOW/SwiftNetworkGear.git"
+  [SwiftPredicate]="https://GitHub.com/YOCKOW/SwiftPredicate.git"
+  [SwiftPublicSuffix]="https://GitHub.com/YOCKOW/SwiftPublicSuffix.git"
+  [SwiftRanges]="https://GitHub.com/YOCKOW/SwiftRanges.git"
+  [SwiftStringComposition]="https://GitHub.com/YOCKOW/SwiftStringComposition.git"
+  [SwiftTemporaryFile]="https://GitHub.com/YOCKOW/SwiftTemporaryFile.git"
+  [SwiftTimeSpecification]="https://GitHub.com/YOCKOW/SwiftTimeSpecification.git"
+  [SwiftUnicodeSupplement]="https://GitHub.com/YOCKOW/SwiftUnicodeSupplement.git"
+  [SwiftXHTML]="https://GitHub.com/YOCKOW/SwiftXHTML.git"
+  [ySwiftCodeUpdater]="https://GitHub.com/YOCKOW/ySwiftCodeUpdater.git"
+  [ySwiftExtensions]="https://GitHub.com/YOCKOW/ySwiftExtensions.git"
+)
+local -a repo_order=(
+  CSV.swift
+
+  SwiftBootstring
+  SwiftCodableDictionary
+  SwiftJapaneseNationalHolidays
+  SwiftPublicSuffix
+  SwiftRanges
+  SwiftTimeSpecification
+  SwiftPredicate
+  SwiftUnicodeSupplement
+  SwiftBonaFideCharacterSet
+  ySwiftExtensions
+  SwiftNetworkGear
+  SwiftStringComposition
+  SwiftTemporaryFile
+  SwiftXHTML
+  SwiftMailMessage
+  SwiftCGIResponder
+  ySwiftCodeUpdater
+)
+
+local -A parsed_arguments
+zparseopts -D -E -M -A parsed_arguments -- \
+  v -verbose=v \
+  c -clone=c \
+  -skip-release \
+  -only: \
+  -exclude: \
+
+local verbose="false"
+if [[ -n "${parsed_arguments[(i)-v]}" ]]; then
+  verbose="true"
+  echo "Verbose Mode: on"
+fi
+
+function is_verbose() {
+  if [[ "$verbose" == "true" ]]; then
+    function is_verbose() { return 0 }
+    return 0
+  else
+    function is_verbose() { return 1 }
+    return 1
+  fi
+}
+
+function verbose_print() {
+  function __verbose_print_body() {
+    printf "\033[2m%s\033[m\n" "$1"
+  }
+  if is_verbose; then
+    function verbose_print() { __verbose_print_body "$1" }
+    __verbose_print_body "$1"
+  else
+    function verbose_print() { : }
+  fi
+}
+
+local clone="false"
+if [[ -n "${parsed_arguments[(i)-c]}" ]]; then
+  clone="true"
+  verbose_print "Will clone repositories from remote URL."
+fi
+
+local skip_release="false"
+if [[ -n "${parsed_arguments[(i)--skip-release]}" ]]; then
+  skip_release="true"
+  verbose_print "Will skip tests in release configuration."
+fi
+
+local -a only=()
+if [[ -n "${parsed_arguments[(i)--only]}" ]]; then
+  only=(${(s:,:)parsed_arguments[--only]#=})
+  verbose_print "Will execute tests of repositories only named: ${(j:, :)only}"
+fi
+
+local -a exclude=()
+if [[ -n "${parsed_arguments[(i)--exclude]}" ]]; then
+  exclude=(${(s:,:)parsed_arguments[--exclude]#=})
+  verbose_print "Will not execute tests of repositories named: ${(j:, :)exclude}"
+fi
+
+
+local -r repo_dir="$(cd "$(dirname $0)" && pwd)"
+local -r parent_dir="$(dirname "$repo_dir")"
+
+if [[ "$clone" == "false" ]]; then
+  for name url in "${(@kv)repositories}"; do
+    local_dir="${parent_dir}/${name}"
+    if [[ -d "$local_dir" ]]; then
+      repositories[$name]="file://${local_dir}"
+    fi
+  done
+fi
+
+local -r workspace=$(mktemp -d)
+echo "📂 Workspace: ${workspace}"
+echo ""
+
+local -r build_path="${workspace}/.build"
+
+local exit_status=1
+for name in $repo_order; do
+  if [[ ${#only[@]} -ne 0 ]] && [[ ${only[(I)$name]} -eq 0 ]]; then
+    verbose_print "\`--only\` flag does not contain \"$name\"."
+    continue
+  fi
+  if [[ ${#exclude[@]} -ne 0 ]] && [[ ${exclude[(I)$name]} -ne 0 ]]; then
+    verbose_print "\`--exclude\` flag contains \"$name\"."
+    continue
+  fi
+
+  url="${repositories[$name]}"
+  cd "$workspace"
+  echo "🌐 Cloning ${name} from ${url}..."
+  git clone --depth 1 "${url}"
+  cd "${name}"
+
+  set +e
+  if is_verbose; then
+    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --build-path "$build_path"
+    exit_status=$(( $? + 0 ))
+  else
+    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --build-path "$build_path"
+    exit_status=$(( $? + 0 ))
+  fi
+  if [[ $exit_status -eq 0 ]]; then
+    echo "✅ Tests (debug config) passed."
+  else
+    echo "❌ Tests (debug config) failed."
+  fi
+  set -e
+
+  if [[ $skip_release == "false" ]]; then
+    set +e
+    if is_verbose; then
+      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --configuration release --build-path "$build_path"
+      exit_status=$(( $? + 0 ))
+    else
+      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --configuration release --build-path "$build_path"
+      exit_status=$(( $? + 0 ))
+    fi
+    if [[ $exit_status -eq 0 ]]; then
+      echo "✅ Tests (release config) passed."
+    else
+      echo "❌ Tests (release config) failed."
+    fi
+    set -e
+  fi
+
+  echo ""
+done
