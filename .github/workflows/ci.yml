@@ -1,0 +1,41 @@
+name: "Run All Tests of YOCKOW's Swift Packages."
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+    paths:
+      - '**/*.swift'
+      - '.github/workflows/*.yml'
+  pull_request:
+    paths:
+      - '**/*.swift'
+      - '.github/workflows/*.yml'
+jobs:
+  test:
+    defaults:
+      run:
+        working-directory: '.'
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+          - macOS-11
+        swift-compat-ver:
+          - '5'
+          # - '4.2'
+          # - '4'
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install zsh
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt install zsh
+    - uses: YOCKOW/Action-setup-swift@main
+      with:
+        swift-version: '5.6'
+    - name: "Execute `run-tests`"
+      run: ./run-tests
