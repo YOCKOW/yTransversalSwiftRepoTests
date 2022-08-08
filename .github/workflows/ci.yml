@@ -21,7 +21,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macOS-11
+          - macOS-12
         swift-compat-ver:
           - '5'
           # - '4.2'
