@@ -131,6 +131,9 @@ echo ""
 
 local -r build_path="${workspace}/.build"
 
+local number_of_failures_for_debug_config=0
+local number_of_failures_for_release_config=0
+local number_of_skipped=$(( ${#repo_order} + 0 ))
 local exit_status=1
 for name in $repo_order; do
   if [[ ${#only[@]} -ne 0 ]] && [[ ${only[(I)$name]} -eq 0 ]]; then
@@ -141,6 +144,8 @@ for name in $repo_order; do
     verbose_print "\`--exclude\` flag contains \"$name\"."
     continue
   fi
+
+  number_of_skipped=$(( $number_of_skipped - 1 ))
 
   url="${repositories[$name]}"
   cd "$workspace"
@@ -157,9 +162,10 @@ for name in $repo_order; do
     exit_status=$(( $? + 0 ))
   fi
   if [[ $exit_status -eq 0 ]]; then
-    echo "✅ Tests (debug config) passed."
+    echo "✅ ${name}: Tests (debug config) passed."
   else
-    echo "❌ Tests (debug config) failed."
+    echo "❌ ${name}: Tests (debug config) failed."
+    number_of_failures_for_debug_config=$(( $number_of_failures_for_debug_config + 1 ))
   fi
   set -e
 
@@ -173,12 +179,23 @@ for name in $repo_order; do
       exit_status=$(( $? + 0 ))
     fi
     if [[ $exit_status -eq 0 ]]; then
-      echo "✅ Tests (release config) passed."
+      echo "✅ ${name}: Tests (release config) passed."
     else
-      echo "❌ Tests (release config) failed."
+      echo "❌ ${name}: Tests (release config) failed."
+      number_of_failures_for_release_config=$(( $number_of_failures_for_release_config + 1 ))
     fi
     set -e
   fi
 
   echo ""
 done
+
+echo "===== Summary ====="
+echo "Number of all repositories: ${#repo_order}"
+echo "Number of skipped repositories: ${number_of_skipped}"
+echo "Number of failures (debug config): ${number_of_failures_for_debug_config}"
+echo "Number of failures (release config: ${number_of_failures_for_release_config}"
+
+if [[ $number_of_failures_for_debug_config -ne 0  ]] || [[ $number_of_failures_for_release_config -ne 0 ]]; then
+  exit 1
+fi
