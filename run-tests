@@ -129,8 +129,10 @@ local -r workspace=$(mktemp -d)
 echo "📂 Workspace: ${workspace}"
 echo ""
 
-local -r build_path="${workspace}/.build"
+local -r scratch_path="${workspace}/.build"
 
+local number_of_successes_for_debug_config=0
+local number_of_successes_for_release_config=0
 local number_of_failures_for_debug_config=0
 local number_of_failures_for_release_config=0
 local number_of_skipped=$(( ${#repo_order} + 0 ))
@@ -155,14 +157,15 @@ for name in $repo_order; do
 
   set +e
   if is_verbose; then
-    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --build-path "$build_path"
+    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --scratch-path "$scratch_path"
     exit_status=$(( $? + 0 ))
   else
-    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --build-path "$build_path"
+    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --scratch-path "$scratch_path"
     exit_status=$(( $? + 0 ))
   fi
   if [[ $exit_status -eq 0 ]]; then
     echo "✅ ${name}: Tests (debug config) passed."
+    number_of_successes_for_debug_config=$(( $number_of_successes_for_debug_config + 1 ))
   else
     echo "❌ ${name}: Tests (debug config) failed."
     number_of_failures_for_debug_config=$(( $number_of_failures_for_debug_config + 1 ))
@@ -172,14 +175,15 @@ for name in $repo_order; do
   if [[ $skip_release == "false" ]]; then
     set +e
     if is_verbose; then
-      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --configuration release --build-path "$build_path"
+      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --configuration release --scratch-path "$scratch_path"
       exit_status=$(( $? + 0 ))
     else
-      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --configuration release --build-path "$build_path"
+      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --configuration release --scratch-path "$scratch_path"
       exit_status=$(( $? + 0 ))
     fi
     if [[ $exit_status -eq 0 ]]; then
       echo "✅ ${name}: Tests (release config) passed."
+      number_of_successes_for_release_config=$(( $number_of_successes_for_release_config + 1 ))
     else
       echo "❌ ${name}: Tests (release config) failed."
       number_of_failures_for_release_config=$(( $number_of_failures_for_release_config + 1 ))
@@ -193,6 +197,8 @@ done
 echo "===== Summary ====="
 echo "Number of all repositories: ${#repo_order}"
 echo "Number of skipped repositories: ${number_of_skipped}"
+echo "Number of successes (debug config): ${number_of_successes_for_debug_config}"
+echo "Number of successes (release config: ${number_of_successes_for_release_config}"
 echo "Number of failures (debug config): ${number_of_failures_for_debug_config}"
 echo "Number of failures (release config: ${number_of_failures_for_release_config}"
 
