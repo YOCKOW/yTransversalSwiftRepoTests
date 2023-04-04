@@ -20,15 +20,15 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-20.04
-          - macOS-12
+          - ubuntu-22.04
+          - macOS-latest
         swift-compat-ver:
           - '5'
           # - '4.2'
           # - '4'
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install zsh
       if: runner.os == 'Linux'
       run: |
@@ -36,6 +36,6 @@ jobs:
         sudo apt install zsh
     - uses: YOCKOW/Action-setup-swift@main
       with:
-        swift-version: '5.7'
+        swift-version: '5.8'
     - name: "Execute `run-tests`"
       run: ./run-tests
