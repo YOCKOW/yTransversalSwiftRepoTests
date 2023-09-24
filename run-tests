@@ -12,7 +12,6 @@ set -eu
 local -A repositories=(
   [CSV.swift]="https://github.com/yaslab/CSV.swift.git" # Dependency
 
-  [SwiftBonaFideCharacterSet]="https://GitHub.com/YOCKOW/SwiftBonaFideCharacterSet.git"
   [SwiftBootstring]="https://GitHub.com/YOCKOW/SwiftBootstring.git"
   [SwiftCGIResponder]="https://GitHub.com/YOCKOW/SwiftCGIResponder.git"
   [SwiftCodableDictionary]="https://GitHub.com/YOCKOW/SwiftCodableDictionary.git"
@@ -41,7 +40,6 @@ local -a repo_order=(
   SwiftTimeSpecification
   SwiftPredicate
   SwiftUnicodeSupplement
-  SwiftBonaFideCharacterSet
   ySwiftExtensions
   SwiftNetworkGear
   SwiftStringComposition
