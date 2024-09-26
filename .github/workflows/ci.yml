@@ -21,21 +21,24 @@ jobs:
       matrix:
         os:
           - ubuntu-22.04
+          - ubuntu-24.04
           - macOS-14
+          # - macOS-15
         swift-version:
-          - '5.10'
-        swift-compat-ver:
-          - '5'
-          # - '4.2'
-          # - '4'
+          - '6.0.1'
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Install zsh
+    - uses: ikalnytskyi/action-setup-postgres@v6
+      with:
+        username: swiftpq_test
+        password: swiftpq_test
+        database: swiftpq_test
+    - name: Install depencencies
       if: runner.os == 'Linux'
       run: |
         sudo apt update
-        sudo apt install zsh
+        sudo apt install zsh libcurl4-openssl-dev libecpg-dev libpgtypes3
+    - uses: actions/checkout@v4
     - uses: YOCKOW/Action-setup-swift@main
       with:
         swift-version: ${{ matrix.swift-version }}

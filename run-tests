@@ -18,6 +18,7 @@ local -A repositories=(
   [SwiftJapaneseNationalHolidays]="https://GitHub.com/YOCKOW/SwiftJapaneseNationalHolidays.git"
   [SwiftMailMessage]="https://GitHub.com/YOCKOW/SwiftMailMessage.git"
   [SwiftNetworkGear]="https://GitHub.com/YOCKOW/SwiftNetworkGear.git"
+  [SwiftPQ]="https://GitHub.com/YOCKOW/SwiftPQ.git"
   [SwiftPredicate]="https://GitHub.com/YOCKOW/SwiftPredicate.git"
   [SwiftPublicSuffix]="https://GitHub.com/YOCKOW/SwiftPublicSuffix.git"
   [SwiftRanges]="https://GitHub.com/YOCKOW/SwiftRanges.git"
@@ -41,9 +42,10 @@ local -a repo_order=(
   SwiftPredicate
   SwiftUnicodeSupplement
   ySwiftExtensions
-  SwiftNetworkGear
-  SwiftStringComposition
   SwiftTemporaryFile
+  SwiftNetworkGear
+  SwiftPQ
+  SwiftStringComposition
   SwiftXHTML
   SwiftMailMessage
   SwiftCGIResponder
