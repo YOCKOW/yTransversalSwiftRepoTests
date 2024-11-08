@@ -43,9 +43,9 @@ local -a repo_order=(
   SwiftUnicodeSupplement
   ySwiftExtensions
   SwiftTemporaryFile
+  SwiftStringComposition
   SwiftNetworkGear
   SwiftPQ
-  SwiftStringComposition
   SwiftXHTML
   SwiftMailMessage
   SwiftCGIResponder
