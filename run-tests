@@ -53,6 +53,8 @@ local -a repo_order=(
 local -A parsed_arguments
 zparseopts -D -E -M -A parsed_arguments -- \
   v -verbose=v \
+  -swift-path: \
+  -swift-version: \
   c -clone=c \
   -skip-release \
   -only: \
@@ -85,6 +87,36 @@ function verbose_print() {
     function verbose_print() { : }
   fi
 }
+
+local -r swift_command_path=$(
+  function () {
+    if [[ -n "${parsed_arguments[(i)--swift-path]}" ]]; then
+      echo ${parsed_arguments[--swift-path]#=}
+    elif [[ -n "${SWIFT_BIN_PATH-}" ]]; then
+      echo "$SWIFT_BIN_PATH"
+    else
+      echo "swift"
+    fi
+  }
+)
+verbose_print "Swift Path: ${swift_command_path}"
+
+local -r swift_version=$(
+  function () {
+    if [[ -n "${parsed_arguments[(i)--swift-version]}" ]]; then
+      echo ${parsed_arguments[--swift-version]#=}
+    elif [[ -n "${SWIFT_VERSION-}" ]]; then
+      echo "$SWIFT_VERSION"
+    else
+      echo 0
+    fi
+  }
+)
+if [[ $(( 0 + "$swift_version" )) -gt 0 ]]; then
+  verbose_print "Swift Version (Language Mode): ${swift_version}"
+else
+  verbose_print "Swift Version (Language Mode): <unspecified>"
+fi
 
 local clone="false"
 if [[ -n "${parsed_arguments[(i)-c]}" ]]; then
@@ -153,14 +185,21 @@ for name in $repo_order; do
   git clone --depth 1 "${url}"
   cd "${name}"
 
-  set +e
+  local -a swiftDefaultArgs=(--scratch-path "$scratch_path")
   if is_verbose; then
-    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --scratch-path "$scratch_path"
-    exit_status=$(( $? + 0 ))
-  else
-    YOCKOW_USE_LOCAL_PACKAGES=1 swift test --scratch-path "$scratch_path"
-    exit_status=$(( $? + 0 ))
+    swiftDefaultArgs=(--verbose $swiftDefaultArgs)
   fi
+  if [[ $(( 0 + "$swift_version" )) -gt 0 ]]; then
+    swiftDefaultArgs=($swiftDefaultArgs -Xswiftc -swift-version -Xswiftc "$swift_version")
+  fi
+
+  set +e
+  set -x
+  env YOCKOW_USE_LOCAL_PACKAGES=1 "$swift_command_path" test $swiftDefaultArgs
+  {
+    exit_status=$(( $? + 0 ))
+    set +x;
+  } 2>/dev/null
   if [[ $exit_status -eq 0 ]]; then
     echo "✅ ${name}: Tests (debug config) passed."
     number_of_successes_for_debug_config=$(( $number_of_successes_for_debug_config + 1 ))
@@ -172,13 +211,12 @@ for name in $repo_order; do
 
   if [[ $skip_release == "false" ]]; then
     set +e
-    if is_verbose; then
-      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --verbose --configuration release --scratch-path "$scratch_path"
+    set -x
+    env YOCKOW_USE_LOCAL_PACKAGES=1 "$swift_command_path" test $swiftDefaultArgs --configuration release
+    {
       exit_status=$(( $? + 0 ))
-    else
-      YOCKOW_USE_LOCAL_PACKAGES=1 swift test --configuration release --scratch-path "$scratch_path"
-      exit_status=$(( $? + 0 ))
-    fi
+      set +x;
+    } 2>/dev/null
     if [[ $exit_status -eq 0 ]]; then
       echo "✅ ${name}: Tests (release config) passed."
       number_of_successes_for_release_config=$(( $number_of_successes_for_release_config + 1 ))
@@ -193,6 +231,13 @@ for name in $repo_order; do
 done
 
 echo "===== Summary ====="
+echo "Swift Command: ${swift_command_path}"
+env "$swift_command_path" --version
+if [[ $(( 0 + "$swift_version" )) -gt 0 ]]; then
+  echo "Swift Version (Language Mode): ${swift_version}"
+else
+  echo "Swift Version (Language Mode): <unspecified>"
+fi
 echo "Number of all repositories: ${#repo_order}"
 echo "Number of skipped repositories: ${number_of_skipped}"
 echo "Number of successes (debug config): ${number_of_successes_for_debug_config}"
