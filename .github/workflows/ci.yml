@@ -48,6 +48,17 @@ jobs:
         sudo apt update
         sudo apt install zsh libcurl4-openssl-dev libecpg-dev libpgtypes3
     - uses: actions/checkout@v4
+    - name: Cache scratch directory
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-${{ matrix.swift-version }}-${{ matrix.swift-compat-ver }}-${{ hashFiles('run-tests') }}
+        restore-keys: |
+          build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-${{ matrix.swift-version }}-${{ matrix.swift-compat-ver }}-
+          build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-${{ matrix.swift-version }}-
+          build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-
+          build-${{ github.workspace }}-${{ runner.os }}-
+          build-${{ github.workspace }}-
     - uses: YOCKOW/Action-setup-swift@main
       with:
         swift-version: ${{ matrix.swift-version }}

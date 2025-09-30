@@ -145,6 +145,7 @@ fi
 
 local -r repo_dir="$(cd "$(dirname $0)" && pwd)"
 local -r parent_dir="$(dirname "$repo_dir")"
+local -r scratch_path="${repo_dir}/.build"
 
 if [[ "$clone" == "false" ]]; then
   for name url in "${(@kv)repositories}"; do
@@ -158,8 +159,6 @@ fi
 local -r workspace=$(mktemp -d)
 echo "📂 Workspace: ${workspace}"
 echo ""
-
-local -r scratch_path="${workspace}/.build"
 
 local number_of_successes_for_debug_config=0
 local number_of_successes_for_release_config=0
