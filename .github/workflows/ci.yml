@@ -26,9 +26,9 @@ jobs:
       matrix:
         os:
           - ubuntu-24.04
-          - macOS-15
+          - macOS-26
         swift-version:
-          - '6.1'
+          - '6.2'
         swift-compat-ver:
           - '6'
           - '5'
