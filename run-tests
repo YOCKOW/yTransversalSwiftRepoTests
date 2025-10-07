@@ -169,6 +169,11 @@ local -a failed_repositories_with_debug_config=()
 local -a failed_repositories_with_release_config=()
 local exit_status=1
 for name in $repo_order; do
+  url="${repositories[$name]}"
+  cd "$workspace"
+  echo "🌐 Cloning ${name} from ${url}..."
+  git clone --depth 1 "${url}"
+
   if [[ ${#only[@]} -ne 0 ]] && [[ ${only[(I)$name]} -eq 0 ]]; then
     verbose_print "\`--only\` flag does not contain \"$name\"."
     continue
@@ -180,10 +185,6 @@ for name in $repo_order; do
 
   number_of_skipped=$(( $number_of_skipped - 1 ))
 
-  url="${repositories[$name]}"
-  cd "$workspace"
-  echo "🌐 Cloning ${name} from ${url}..."
-  git clone --depth 1 "${url}"
   cd "${name}"
 
   local -a swiftDefaultArgs=(--scratch-path "$scratch_path")
