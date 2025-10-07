@@ -145,6 +145,7 @@ fi
 
 local -r repo_dir="$(cd "$(dirname $0)" && pwd)"
 local -r parent_dir="$(dirname "$repo_dir")"
+local -r scratch_path="${repo_dir}/.build"
 
 if [[ "$clone" == "false" ]]; then
   for name url in "${(@kv)repositories}"; do
@@ -159,15 +160,20 @@ local -r workspace=$(mktemp -d)
 echo "📂 Workspace: ${workspace}"
 echo ""
 
-local -r scratch_path="${workspace}/.build"
-
 local number_of_successes_for_debug_config=0
 local number_of_successes_for_release_config=0
 local number_of_failures_for_debug_config=0
 local number_of_failures_for_release_config=0
 local number_of_skipped=$(( ${#repo_order} + 0 ))
+local -a failed_repositories_with_debug_config=()
+local -a failed_repositories_with_release_config=()
 local exit_status=1
 for name in $repo_order; do
+  url="${repositories[$name]}"
+  cd "$workspace"
+  echo "🌐 Cloning ${name} from ${url}..."
+  git clone --depth 1 "${url}"
+
   if [[ ${#only[@]} -ne 0 ]] && [[ ${only[(I)$name]} -eq 0 ]]; then
     verbose_print "\`--only\` flag does not contain \"$name\"."
     continue
@@ -179,10 +185,6 @@ for name in $repo_order; do
 
   number_of_skipped=$(( $number_of_skipped - 1 ))
 
-  url="${repositories[$name]}"
-  cd "$workspace"
-  echo "🌐 Cloning ${name} from ${url}..."
-  git clone --depth 1 "${url}"
   cd "${name}"
 
   local -a swiftDefaultArgs=(--scratch-path "$scratch_path")
@@ -206,6 +208,7 @@ for name in $repo_order; do
   else
     echo "❌ ${name}: Tests (debug config) failed."
     number_of_failures_for_debug_config=$(( $number_of_failures_for_debug_config + 1 ))
+    failed_repositories_with_debug_config=($failed_repositories_with_debug_config $name)
   fi
   set -e
 
@@ -223,6 +226,7 @@ for name in $repo_order; do
     else
       echo "❌ ${name}: Tests (release config) failed."
       number_of_failures_for_release_config=$(( $number_of_failures_for_release_config + 1 ))
+      failed_repositories_with_release_config=($failed_repositories_with_release_config $name)
     fi
     set -e
   fi
@@ -243,7 +247,9 @@ echo "Number of skipped repositories: ${number_of_skipped}"
 echo "Number of successes (debug config): ${number_of_successes_for_debug_config}"
 echo "Number of successes (release config: ${number_of_successes_for_release_config}"
 echo "Number of failures (debug config): ${number_of_failures_for_debug_config}"
+echo "└ Failed repositories (debug config): ${(j:,:)failed_repositories_with_debug_config}"
 echo "Number of failures (release config: ${number_of_failures_for_release_config}"
+echo "└ Failed repositories (release config): ${(j:,:)failed_repositories_with_release_config}"
 
 if [[ $number_of_failures_for_debug_config -ne 0  ]] || [[ $number_of_failures_for_release_config -ne 0 ]]; then
   exit 1
