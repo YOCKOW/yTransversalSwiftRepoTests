@@ -29,7 +29,8 @@ jobs:
           - ubuntu-24.04
           - macOS-26
         swift-version:
-          - '6.2'
+          - '6.3.1'
+          - '6.2.4'
         swift-compat-ver:
           - '6'
           - '5'
@@ -37,7 +38,7 @@ jobs:
           # - '4'
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: ikalnytskyi/action-setup-postgres@v7
+    - uses: ikalnytskyi/action-setup-postgres@v8
       with:
         username: swiftpq_test
         password: swiftpq_test
@@ -45,11 +46,11 @@ jobs:
     - name: Install depencencies
       if: runner.os == 'Linux'
       run: |
-        sudo apt update
-        sudo apt install zsh libcurl4-openssl-dev libecpg-dev libpgtypes3
-    - uses: actions/checkout@v4
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends zsh libcurl4-openssl-dev libecpg-dev libpgtypes3
+    - uses: actions/checkout@v6
     - name: Cache scratch directory
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .build
         key: build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-${{ matrix.swift-version }}-${{ matrix.swift-compat-ver }}-${{ hashFiles('run-tests') }}
@@ -59,7 +60,7 @@ jobs:
           build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-
           build-${{ github.workspace }}-${{ runner.os }}-
           build-${{ github.workspace }}-
-    - uses: YOCKOW/Action-setup-swift@main
+    - uses: YOCKOW/Action-setup-swift@v1
       with:
         swift-version: ${{ matrix.swift-version }}
     - name: "Execute `run-tests`"
