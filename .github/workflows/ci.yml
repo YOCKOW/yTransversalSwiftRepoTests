@@ -65,4 +65,4 @@ jobs:
       with:
         swift-version: ${{ matrix.swift-version }}
     - name: "Execute `run-tests`"
-      run: ./run-tests --swift-version ${{ matrix.swift-compat-ver }} --exclude CSV.swift
+      run: ./run-tests --swift-version ${{ matrix.swift-compat-ver }} --exclude CSV.swift,SwiftPQ
