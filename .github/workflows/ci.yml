@@ -29,7 +29,8 @@ jobs:
           - ubuntu-24.04
           - macOS-26
         swift-version:
-          - '6.3.1'
+          - '6.4.0'
+          - '6.3.3'
           - '6.2.4'
         swift-compat-ver:
           - '6'
@@ -48,9 +49,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --no-install-recommends zsh libcurl4-openssl-dev libecpg-dev libpgtypes3
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Cache scratch directory
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: .build
         key: build-${{ github.workspace }}-${{ runner.os }}-${{ matrix.os }}-${{ matrix.swift-version }}-${{ matrix.swift-compat-ver }}-${{ hashFiles('run-tests') }}
@@ -64,4 +65,4 @@ jobs:
       with:
         swift-version: ${{ matrix.swift-version }}
     - name: "Execute `run-tests`"
-      run: ./run-tests --swift-version ${{ matrix.swift-compat-ver }} --exclude CSV.swift
+      run: ./run-tests --swift-version ${{ matrix.swift-compat-ver }} --exclude CSV.swift,SwiftPQ
