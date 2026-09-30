@@ -11,12 +11,6 @@ on:
       - '**/*.h'
       - '.github/workflows/*.yml'
       - 'run-tests'
-  pull_request:
-    paths:
-      - '**/*.swift'
-      - '**/*.c'
-      - '**/*.h'
-      - '.github/workflows/*.yml'
 jobs:
   test:
     defaults:
