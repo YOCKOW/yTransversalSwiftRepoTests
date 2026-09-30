@@ -167,6 +167,8 @@ local number_of_failures_for_release_config=0
 local number_of_skipped=$(( ${#repo_order} + 0 ))
 local -a failed_repositories_with_debug_config=()
 local -a failed_repositories_with_release_config=()
+local -A debug_config_processing_times=()
+local -A release_config_processing_times=()
 local exit_status=1
 for name in $repo_order; do
   url="${repositories[$name]}"
@@ -196,10 +198,12 @@ for name in $repo_order; do
   fi
 
   set +e
+  local debugConfigStartTime=$(date +%s.%N)
   set -x
   env YOCKOW_USE_LOCAL_PACKAGES=1 "$swift_command_path" test $swiftDefaultArgs
   {
     exit_status=$(( $? + 0 ))
+    debug_config_processing_times[$name]=$(echo "scale=2; ($(date +%s.%N) - ${debugConfigStartTime}) / 1.0" | bc)
     set +x;
   } 2>/dev/null
   if [[ $exit_status -eq 0 ]]; then
@@ -214,10 +218,12 @@ for name in $repo_order; do
 
   if [[ $skip_release == "false" ]]; then
     set +e
+    local releaseConfigStartTime=$(date +%s.%N)
     set -x
     env YOCKOW_USE_LOCAL_PACKAGES=1 "$swift_command_path" test $swiftDefaultArgs --configuration release
     {
       exit_status=$(( $? + 0 ))
+      release_config_processing_times[$name]=$(echo "scale=2; ($(date +%s.%N) - ${releaseConfigStartTime}) / 1.0" | bc)
       set +x;
     } 2>/dev/null
     if [[ $exit_status -eq 0 ]]; then
@@ -234,7 +240,8 @@ for name in $repo_order; do
   echo ""
 done
 
-echo "===== Summary ====="
+echo ""
+echo "========== Summary =========="
 echo "Swift Command: ${swift_command_path}"
 env "$swift_command_path" --version
 if [[ $(( 0 + "$swift_version" )) -gt 0 ]]; then
@@ -250,6 +257,37 @@ echo "Number of failures (debug config): ${number_of_failures_for_debug_config}"
 echo "└ Failed repositories (debug config): ${(j:,:)failed_repositories_with_debug_config}"
 echo "Number of failures (release config: ${number_of_failures_for_release_config}"
 echo "└ Failed repositories (release config): ${(j:,:)failed_repositories_with_release_config}"
+
+echo ""
+echo "----- Processing Times -----"
+function _to_human_readable_time() {
+  local -r -a secondsAndFraction=(${(@s:.:)1})
+  local -r readableSeconds=$(echo ${secondsAndFraction[1]} | awk '{printf "%01d:%02d:%02d", $1/3600, ($1/60)%60, $1%60}')
+  echo "${readableSeconds}.${secondsAndFraction[2]}"
+}
+for name in $repo_order; do
+  echo "$name"
+
+  set +u
+  local debugConfigProcessingTime=${debug_config_processing_times[$name]}
+  set -u
+  printf " ├   debug config: "
+  if [[ -z "$debugConfigProcessingTime" ]]; then
+    echo "n/a"
+  else
+    echo "${debugConfigProcessingTime} seconds. ($(_to_human_readable_time $debugConfigProcessingTime))"
+  fi
+
+  set +u
+  local releaseConfigProcessingTime=${release_config_processing_times[$name]}
+  set -u
+  printf " └ release config: "
+  if [[ -z "$releaseConfigProcessingTime" ]]; then
+    echo "n/a"
+  else
+    echo "${releaseConfigProcessingTime} seconds. ($(_to_human_readable_time $releaseConfigProcessingTime))"
+  fi
+done
 
 if [[ $number_of_failures_for_debug_config -ne 0  ]] || [[ $number_of_failures_for_release_config -ne 0 ]]; then
   exit 1
