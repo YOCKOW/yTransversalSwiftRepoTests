@@ -156,7 +156,13 @@ if [[ "$clone" == "false" ]]; then
   done
 fi
 
-local -r workspace=$(mktemp -d)
+local workspace=""
+if [[ -v GITHUB_ACTIONS ]]; then
+  workspace="${HOME}/yTransversalSwiftRepoTests-Workspace"
+  mkdir -p "$workspace"
+else
+  workspace=$(mktemp -d)
+fi
 echo "📂 Workspace: ${workspace}"
 echo ""
 
@@ -174,7 +180,7 @@ for name in $repo_order; do
   url="${repositories[$name]}"
   cd "$workspace"
   echo "🌐 Cloning ${name} from ${url}..."
-  git clone --depth 1 "${url}"
+  git clone --depth 1 "${url}" "$name"
 
   if [[ ${#only[@]} -ne 0 ]] && [[ ${only[(I)$name]} -eq 0 ]]; then
     verbose_print "\`--only\` flag does not contain \"$name\"."
@@ -187,9 +193,7 @@ for name in $repo_order; do
 
   number_of_skipped=$(( $number_of_skipped - 1 ))
 
-  cd "${name}"
-
-  local -a swiftDefaultArgs=(--scratch-path "$scratch_path")
+  local -a swiftDefaultArgs=(--package-path "./${name}" --scratch-path "$scratch_path")
   if is_verbose; then
     swiftDefaultArgs=(--verbose $swiftDefaultArgs)
   fi
